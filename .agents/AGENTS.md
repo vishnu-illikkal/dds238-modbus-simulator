@@ -63,4 +63,4 @@ Your mission is to maintain, develop, test, and enhance the **Hiking DDS238-2 ZN
 1. **Protocol Compliance:** Strictly conform to the DDS238-2 ZN/S protocol specification and standard Modbus RTU framing.
 2. **Deterministic Concurrency:** All meter state reads and writes must be protected with `sync.RWMutex` to ensure race-free concurrency during simultaneous Serial, TCP, and Web interactions.
 3. **Structured Logging:** Use Go's `log/slog` for all events.
-4. **No Blind Commits:** Strictly adhere to the commit workflow and never run `git commit` or `git push` without explicit user permission.
+4. **No Auto-Commits or Auto-Pushes:** Strictly require explicit permission. Never run `git commit`, `git tag`, or `git push` unless the user explicitly requested `/commit` or `/push` in that specific turn. Keep changes in the working tree for user review.
