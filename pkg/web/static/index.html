@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DDS238-2 ZN/S Modbus Energy Meter Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="logo-group">
+      <div class="meter-icon">⚡</div>
+      <div class="title-group">
+        <h1>Hiking DDS238-2 ZN/S Modbus RTU / TCP Simulator</h1>
+        <p>Multi-Meter Virtual Grid, Real-time Inspector & STM32 Reader</p>
+      </div>
+    </div>
+
+    <div class="header-status">
+      <div class="status-badge active" id="ws-status">
+        <span class="dot"></span>
+        <span id="ws-status-text">Web UI Active</span>
+      </div>
+      <div class="status-badge active clickable" id="tcp-status" onclick="openTcpModal()" title="Click to Change Modbus TCP Port">
+        <span class="dot" id="tcp-status-dot"></span>
+        <span>Modbus TCP:</span>
+        <strong id="badge-tcp-port" style="color:var(--accent-amber)">:8502</strong>
+        <span style="font-size:0.7rem; opacity:0.8;">✏️</span>
+      </div>
+      <div class="status-badge">
+        <span>Active Server ID:</span>
+        <strong id="badge-slave-id" style="color:var(--accent-cyan)">1</strong>
+      </div>
+      <div class="status-badge">
+        <span>Meter Baud:</span>
+        <strong id="badge-baud" style="color:var(--accent-emerald)">9600</strong>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- UART / Serial Port Connection Toolbar -->
+    <section class="serial-toolbar">
+      <div class="serial-toolbar-left">
+        <div class="serial-icon">🔌</div>
+        <div>
+          <strong style="font-size:0.9rem; color:#fff;">Hardware Serial Port (STM32 UART / RS-485 Converter)</strong>
+          <p style="font-size:0.75rem; color:var(--text-muted);">Connect your USB-to-UART converter to communicate with all simulated meters simultaneously.</p>
+        </div>
+      </div>
+
+      <div class="serial-toolbar-controls">
+        <div class="form-group" style="min-width: 170px;">
+          <select id="select-com-port" class="form-control" style="height:36px;">
+            <option value="">Scanning ports...</option>
+          </select>
+        </div>
+
+        <button class="btn" title="Refresh available COM ports" onclick="loadComPorts()">
+          🔄 Refresh
+        </button>
+
+        <div class="form-group" style="width: 110px;">
+          <select id="select-baud" class="form-control" style="height:36px;">
+            <option value="9600" selected>9600 Bd</option>
+            <option value="4800">4800 Bd</option>
+            <option value="2400">2400 Bd</option>
+            <option value="1200">1200 Bd</option>
+          </select>
+        </div>
+
+        <button id="btn-serial-toggle" class="btn btn-primary" style="height:36px; min-width: 120px;" onclick="toggleSerialConnection()">
+          ⚡ Connect Port
+        </button>
+
+        <div id="serial-status-pill" class="serial-status-pill disconnected">
+          <span class="dot"></span>
+          <span id="serial-status-label">UART Disconnected</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Multi-Meter Switcher Tab Bar -->
+    <section class="meter-tabs-container">
+      <div class="meter-tabs-left" id="meter-tabs-list">
+        <!-- Dynamically injected tabs -->
+      </div>
+      <div class="meter-tabs-right">
+        <button class="btn btn-primary" onclick="openAddMeterModal()" style="padding:0.45rem 0.9rem; font-size:0.8rem; font-weight:600;">
+          ➕ Add Virtual Meter
+        </button>
+      </div>
+    </section>
+
+    <!-- Telemetry Cards Grid -->
+    <section class="telemetry-grid">
+      <!-- Voltage -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Voltage</span>
+          <span class="metric-reg">0x000C</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-voltage">230.0</span>
+          <span class="metric-unit">V</span>
+        </div>
+        <div class="metric-sub" id="raw-voltage">Raw: 2300 (0.1 V)</div>
+      </div>
+
+      <!-- Current -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Current</span>
+          <span class="metric-reg">0x000D</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-current">5.25</span>
+          <span class="metric-unit">A</span>
+        </div>
+        <div class="metric-sub" id="raw-current">Raw: 525 (0.01 A)</div>
+      </div>
+
+      <!-- Active Power -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Active Power</span>
+          <span class="metric-reg">0x000E</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-active-power">1208</span>
+          <span class="metric-unit">W</span>
+        </div>
+        <div class="metric-sub" id="raw-active-power">Signed 16-bit (1 W)</div>
+      </div>
+
+      <!-- Reactive Power -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Reactive Power</span>
+          <span class="metric-reg">0x000F</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-reactive-power">110</span>
+          <span class="metric-unit">VAr</span>
+        </div>
+        <div class="metric-sub" id="raw-reactive-power">Raw: 110 (1 VAr)</div>
+      </div>
+
+      <!-- Power Factor -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Power Factor</span>
+          <span class="metric-reg">0x0010</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-pf">0.995</span>
+          <span class="metric-unit">cos φ</span>
+        </div>
+        <div class="metric-sub" id="raw-pf">Raw: 995 (1/1000)</div>
+      </div>
+
+      <!-- Frequency -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Frequency</span>
+          <span class="metric-reg">0x0011</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-freq">50.00</span>
+          <span class="metric-unit">Hz</span>
+        </div>
+        <div class="metric-sub" id="raw-freq">Raw: 5000 (0.01 Hz)</div>
+      </div>
+
+      <!-- Import Energy -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Import Energy (Grid)</span>
+          <span class="metric-reg">0x000A..0B</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-import-energy" style="color:var(--accent-cyan)">124.56</span>
+          <span class="metric-unit">kWh</span>
+        </div>
+        <div class="metric-sub" id="raw-import-energy">Forward (0.01 kWh)</div>
+      </div>
+
+      <!-- Export Energy -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Export Energy (Solar)</span>
+          <span class="metric-reg">0x0008..09</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-export-energy" style="color:var(--accent-amber)">0.00</span>
+          <span class="metric-unit">kWh</span>
+        </div>
+        <div class="metric-sub" id="raw-export-energy">Reverse (0.01 kWh)</div>
+      </div>
+
+      <!-- Total Energy -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Total Energy</span>
+          <span class="metric-reg">0x0000..01</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-total-energy">124.56</span>
+          <span class="metric-unit">kWh</span>
+        </div>
+        <div class="metric-sub" id="raw-total-energy">32-bit DWord (0.01 kWh)</div>
+      </div>
+
+      <!-- Relay State -->
+      <div class="metric-card">
+        <div class="metric-header">
+          <span class="metric-title">Relay State</span>
+          <span class="metric-reg">0x001A</span>
+        </div>
+        <div class="metric-value-container">
+          <span class="metric-value" id="val-relay" style="color:var(--accent-emerald)">ON</span>
+        </div>
+        <div class="metric-sub">
+          <button class="btn btn-danger" id="btn-quick-relay" style="padding:0.2rem 0.6rem; font-size:0.75rem; margin-top:4px;" onclick="toggleRelay()">Toggle Relay</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two-Column Layout -->
+    <div class="layout-split">
+
+      <!-- Left Column: Client Command Reader & Code Generator -->
+      <div style="display:flex; flex-direction:column; gap:1.5rem;">
+        
+        <!-- Client Reader Panel -->
+        <section class="panel">
+          <div class="panel-title-bar">
+            <h2 class="panel-title">📡 Modbus Client Reader & Sandbox</h2>
+            <span style="font-size:0.8rem; color:var(--text-muted);">Send queries to verify server response</span>
+          </div>
+
+          <!-- Presets -->
+          <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <label style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Quick Presets (Click to Execute):</label>
+            <div class="preset-buttons">
+              <button type="button" class="btn" onclick="sendPreset('voltage')">⚡ Voltage (0x000C)</button>
+              <button type="button" class="btn" onclick="sendPreset('current')">🔌 Current (0x000D)</button>
+              <button type="button" class="btn" onclick="sendPreset('import_energy')">⚡ Import Energy (0x000A)</button>
+              <button type="button" class="btn" onclick="sendPreset('export_energy')">☀️ Export Energy (0x0008)</button>
+              <button type="button" class="btn" onclick="sendPreset('energy')">🔋 Total Energy (0x0000)</button>
+              <button type="button" class="btn" onclick="sendPreset('energy_all')">📈 All Energy (0x0000-0B)</button>
+              <button type="button" class="btn" onclick="sendPreset('power_all')">📊 All Power Metrics (0x000C-11)</button>
+              <button type="button" class="btn" onclick="sendPreset('frequency')">🌐 Frequency (0x0011)</button>
+              <button type="button" class="btn" onclick="sendPreset('power_factor')">📐 Power Factor (0x0010)</button>
+              <button type="button" class="btn" onclick="sendPreset('address_baud')">🏷️ Station / Baud (0x0015)</button>
+              <button type="button" class="btn btn-success" onclick="sendPreset('relay_on')">🟢 Relay ON</button>
+              <button type="button" class="btn btn-danger" onclick="sendPreset('relay_off')">🔴 Relay OFF</button>
+              <button type="button" class="btn" onclick="sendPreset('reset_energy')">🔄 Reset Energy</button>
+            </div>
+          </div>
+
+          <!-- Custom Query Form -->
+          <form class="query-form" id="custom-query-form" onsubmit="event.preventDefault(); sendCustomQuery();">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Server ID (Unit)</label>
+                <input type="number" id="query-slave" class="form-control" value="1" min="1" max="247">
+              </div>
+              <div class="form-group">
+                <label>Start Address</label>
+                <input type="text" id="query-start" class="form-control" value="0x000C" placeholder="0x000C or 12">
+              </div>
+              <div class="form-group">
+                <label>Register Count</label>
+                <input type="number" id="query-count" class="form-control" value="1" min="1" max="125">
+              </div>
+              <div class="form-group" style="justify-content:flex-end;">
+                <button type="submit" class="btn btn-primary" style="height:36px;">▶ Send Query</button>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-top:0.25rem;">
+              <label>Or Direct Raw Hex Frame (CRC optional):</label>
+              <div style="display:flex; gap:0.5rem;">
+                <input type="text" id="query-raw-hex" class="form-control" style="flex:1;" placeholder="e.g. 01 03 00 0C 00 01">
+                <button type="button" class="btn" onclick="sendRawHex()">Send Hex</button>
+              </div>
+            </div>
+          </form>
+
+          <!-- Result Display -->
+          <div class="result-box" id="query-result-box" style="display:none;">
+            <div class="hex-display-group">
+              <span class="hex-label">Modbus Request Frame (STM32 -> Meter):</span>
+              <div class="hex-bubble" id="res-request-hex">-</div>
+              <div class="byte-inspector-tags" id="res-req-tags"></div>
+            </div>
+
+            <div class="hex-display-group" style="margin-top:0.75rem;">
+              <span class="hex-label">Modbus Response Frame (Meter -> STM32):</span>
+              <div class="hex-bubble" id="res-response-hex">-</div>
+              <div class="byte-inspector-tags" id="res-resp-tags"></div>
+            </div>
+
+            <div id="res-parsed-box" style="margin-top:0.75rem;">
+              <span class="hex-label">Parsed Physical Values:</span>
+              <div class="parsed-tags" id="res-parsed-tags"></div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- STM32 C Code Generator Panel -->
+        <section class="panel">
+          <div class="panel-title-bar">
+            <h2 class="panel-title">💻 STM32 HAL C Code Generator</h2>
+            <span style="font-size:0.8rem; color:var(--text-muted);">Copy-paste ready for STM32CubeIDE</span>
+          </div>
+
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">
+            Generated C code for current query target (<span id="c-code-target-name">Meter #1</span>):
+          </p>
+
+          <div class="code-container">
+            <button class="copy-btn" onclick="copyCCode()">📋 Copy C Code</button>
+            <pre><code id="c-code-block">// Generating STM32 HAL Code...</code></pre>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Right Column: Wire Packet Inspector & Simulation Controls -->
+      <div style="display:flex; flex-direction:column; gap:1.5rem;">
+        
+        <!-- Wire Packet Inspector -->
+        <section class="panel">
+          <div class="panel-title-bar">
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <h2 class="panel-title">🔬 Wire Packet Inspector (Live Traffic)</h2>
+              <span class="dot" style="background:var(--accent-cyan); box-shadow:0 0 8px var(--accent-cyan);"></span>
+            </div>
+            <button class="btn" style="padding:0.2rem 0.6rem; font-size:0.75rem;" onclick="clearLogs()">Clear Log</button>
+          </div>
+
+          <div class="log-stream" id="packet-log-stream">
+            <div style="color:var(--text-dim); font-size:0.8rem; text-align:center; padding:2rem;">
+              Waiting for Modbus RTU communication over UART or TCP...
+            </div>
+          </div>
+        </section>
+
+        <!-- Dynamic Simulation & Fault Injection -->
+        <section class="panel">
+          <div class="panel-title-bar">
+            <h2 class="panel-title">🎛️ Simulation & Fault Injection (<span id="ctrl-panel-meter-name">Meter #1</span>)</h2>
+            <span style="font-size:0.8rem; color:var(--text-muted);">Tweak parameters in real-time</span>
+          </div>
+
+          <!-- Meter Name / Alias -->
+          <div class="form-group" style="margin-bottom:0.75rem;">
+            <label style="font-size:0.8rem; color:var(--text-muted);">Meter Name / Role:</label>
+            <input type="text" id="ctrl-meter-name" class="form-control" value="Main Grid" onchange="updateMeterName()" placeholder="e.g. Solar PV Inverter, EV Charger">
+          </div>
+
+          <!-- Voltage Slider -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span>Grid Voltage:</span>
+              <span class="slider-val" id="disp-ctrl-voltage">230.0 V</span>
+            </div>
+            <input type="range" id="ctrl-voltage" min="160" max="280" step="1" value="230" oninput="updateControl()">
+            <div style="display:flex; gap:0.4rem; margin-top:0.2rem;">
+              <button type="button" class="btn" style="padding:0.15rem 0.5rem; font-size:0.75rem;" onclick="setVoltage(190)">Undervoltage (190V)</button>
+              <button type="button" class="btn" style="padding:0.15rem 0.5rem; font-size:0.75rem;" onclick="setVoltage(230)">Nominal (230V)</button>
+              <button type="button" class="btn" style="padding:0.15rem 0.5rem; font-size:0.75rem;" onclick="setVoltage(260)">Overvoltage (260V)</button>
+            </div>
+          </div>
+
+          <!-- Current Slider -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span>Load Current:</span>
+              <span class="slider-val" id="disp-ctrl-current">5.25 A</span>
+            </div>
+            <input type="range" id="ctrl-current" min="0" max="60" step="0.25" value="5.25" oninput="updateControl()">
+            <div style="display:flex; gap:0.4rem; margin-top:0.2rem;">
+              <button type="button" class="btn" style="padding:0.15rem 0.5rem; font-size:0.75rem;" onclick="setCurrent(0)">Zero (0A)</button>
+              <button type="button" class="btn" style="padding:0.15rem 0.5rem; font-size:0.75rem;" onclick="setCurrent(5.25)">Nominal (5.25A)</button>
+              <button type="button" class="btn" style="padding:0.15rem 0.5rem; font-size:0.75rem;" onclick="setCurrent(35.0)">Heavy Load (35A)</button>
+            </div>
+          </div>
+
+          <!-- Power Factor Slider -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span>Power Factor:</span>
+              <span class="slider-val" id="disp-ctrl-pf">0.995</span>
+            </div>
+            <input type="range" id="ctrl-pf" min="0.4" max="1.0" step="0.01" value="0.995" oninput="updateControl()">
+          </div>
+
+          <!-- Frequency Slider -->
+          <div class="slider-group">
+            <div class="slider-label-row">
+              <span>Grid Frequency:</span>
+              <span class="slider-val" id="disp-ctrl-freq">50.00 Hz</span>
+            </div>
+            <input type="range" id="ctrl-freq" min="47" max="53" step="0.1" value="50.0" oninput="updateControl()">
+          </div>
+
+          <!-- Toggles -->
+          <div style="display:flex; flex-direction:column; gap:0.6rem; border-top:1px solid var(--border-color); padding-top:0.75rem;">
+            <label style="display:flex; align-items:center; gap:0.6rem; font-size:0.85rem; cursor:pointer;">
+              <input type="checkbox" id="ctrl-noise" checked onchange="updateControl()">
+              <span>Simulate Real Grid Noise / Jitter</span>
+            </label>
+            <label style="display:flex; align-items:center; gap:0.6rem; font-size:0.85rem; cursor:pointer;">
+              <input type="checkbox" id="ctrl-dynamic-energy" checked onchange="updateControl()">
+              <span>Accumulate Energy in Real-time (P * dt)</span>
+            </label>
+          </div>
+
+        </section>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal for Changing Modbus TCP Port -->
+  <div id="modal-tcp" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) closeTcpModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>🌐 Configure Modbus TCP Bridge Port</h3>
+        <button class="btn-close" onclick="closeTcpModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+          Change the listening port for Modbus TCP / Virtual Bridge live without restarting the application.
+        </p>
+        <div class="form-group">
+          <label style="font-size:0.8rem; color:var(--text-muted);">TCP Port or Address (e.g. 8502 or :8502):</label>
+          <input type="text" id="input-tcp-port" class="form-control" value="8502" placeholder="8502 or :8502" style="font-family:var(--font-mono); font-size:1rem; padding:0.6rem;">
+        </div>
+        <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.75rem;">
+          <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.5rem;" onclick="setTcpPortPreset('8502')">Default (8502)</button>
+          <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.5rem;" onclick="setTcpPortPreset('502')">Standard (502)</button>
+          <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.5rem;" onclick="setTcpPortPreset('1502')">Alt (1502)</button>
+          <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.5rem;" onclick="setTcpPortPreset('9502')">High (9502)</button>
+          <button type="button" class="btn btn-danger" style="font-size:0.75rem; padding:0.25rem 0.5rem;" onclick="setTcpPortPreset('off')">Disable TCP</button>
+        </div>
+        <div id="tcp-modal-error" style="color:var(--accent-rose); font-size:0.85rem; margin-top:0.75rem; display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeTcpModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-save-tcp-port" onclick="submitTcpPortChange()">Apply & Listen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for Adding a Virtual Meter -->
+  <div id="modal-add-meter" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) closeAddMeterModal()">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>➕ Add Virtual DDS238 Energy Meter</h3>
+        <button class="btn-close" onclick="closeAddMeterModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">
+          Add another simulated meter instance to the same RS-485 serial bus and TCP bridge.
+        </p>
+
+        <div class="form-group" style="margin-bottom:0.75rem;">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Server ID / Unit Address (1 - 247):</label>
+          <input type="number" id="input-new-meter-id" class="form-control" value="2" min="1" max="247" style="font-family:var(--font-mono); font-size:1rem; padding:0.5rem;">
+        </div>
+
+        <div class="form-group" style="margin-bottom:0.75rem;">
+          <label style="font-size:0.8rem; color:var(--text-muted);">Meter Name / Role:</label>
+          <input type="text" id="input-new-meter-name" class="form-control" value="Solar PV Inverter" placeholder="e.g. Solar PV Inverter, EV Charger">
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:0.3rem;">
+          <label style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Role Quick Presets:</label>
+          <div style="display:flex; flex-wrap:wrap; gap:0.4rem;">
+            <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.5rem;" onclick="setAddMeterRole(2, 'Solar PV Inverter')">☀️ Solar PV Inverter (ID: 2)</button>
+            <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.5rem;" onclick="setAddMeterRole(3, 'EV Fast Charger')">🚗 EV Fast Charger (ID: 3)</button>
+            <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.5rem;" onclick="setAddMeterRole(4, 'HVAC / Heat Pump')">❄️ HVAC / Heat Pump (ID: 4)</button>
+            <button type="button" class="btn" style="font-size:0.75rem; padding:0.25rem 0.5rem;" onclick="setAddMeterRole(5, 'Battery Storage')">🔋 Battery Storage (ID: 5)</button>
+          </div>
+        </div>
+
+        <div id="add-meter-error" style="color:var(--accent-rose); font-size:0.85rem; margin-top:0.75rem; display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn" onclick="closeAddMeterModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btn-save-new-meter" onclick="submitAddMeter()">Add Meter to Bus</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

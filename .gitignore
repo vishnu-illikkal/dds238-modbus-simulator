@@ -1,0 +1,17 @@
+# Temporary & dynamic libraries
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Allow pre-compiled standalone binaries in bin/ for GitHub release / direct running
+!bin/
+!bin/*
+
+# Test binaries & coverage
+*.test
+*.out
+
+# OS specific files
+.DS_Store
+Thumbs.db
