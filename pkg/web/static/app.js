@@ -524,6 +524,20 @@ function copyCCode() {
   });
 }
 
+function copyForYAT() {
+  const reqHex = document.getElementById('res-request-hex').textContent.trim();
+  if (!reqHex || reqHex === '-') {
+    alert('Execute a query first to generate a YAT string.');
+    return;
+  }
+  const yatStr = `\\h(${reqHex})`;
+  navigator.clipboard.writeText(yatStr).then(() => {
+    alert(`Copied for YAT: ${yatStr}\n\nRemember: In YAT set EOL = <None>`);
+  }).catch(err => {
+    console.error('Failed to copy YAT string:', err);
+  });
+}
+
 // Dynamic Simulation & Fault Injection Controls
 function setupEventListeners() {
   // Toggle relay quick button

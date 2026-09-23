@@ -298,13 +298,23 @@
           <!-- Result Display -->
           <div class="result-box" id="query-result-box" style="display:none;">
             <div class="hex-display-group">
-              <span class="hex-label">Modbus Request Frame (STM32 -> Meter):</span>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="hex-label">Modbus Request Frame (Client -> Meter):</span>
+                <button type="button" class="btn" style="padding:0.15rem 0.5rem; font-size:0.75rem; background:rgba(0,242,254,0.15); border-color:var(--accent-cyan);" onclick="copyForYAT()">📋 Copy for YAT (\h format)</button>
+              </div>
               <div class="hex-bubble" id="res-request-hex">-</div>
               <div class="byte-inspector-tags" id="res-req-tags"></div>
             </div>
 
+            <!-- YAT & Terminal Quick Tip Banner -->
+            <div style="margin-top:0.75rem; padding:0.6rem 0.8rem; background:rgba(255,183,3,0.08); border-left:3px solid var(--accent-amber); border-radius:4px; font-size:0.75rem; line-height:1.4;">
+              <strong style="color:var(--accent-amber);">💡 Tip for YAT (Yet Another Terminal) / TCP / Serial:</strong><br>
+              In YAT, set <strong>Terminal &gt; Settings &gt; Text Settings &gt; End-of-Line (EOL) = &lt;None&gt;</strong>.<br>
+              Send frames wrapped in hex syntax without newlines, e.g.: <code style="color:var(--accent-cyan); font-family:var(--font-mono); font-weight:600;" id="yat-snippet-example">\h(01 03 00 0A 00 02 E4 09)</code>
+            </div>
+
             <div class="hex-display-group" style="margin-top:0.75rem;">
-              <span class="hex-label">Modbus Response Frame (Meter -> STM32):</span>
+              <span class="hex-label">Modbus Response Frame (Meter -> Client):</span>
               <div class="hex-bubble" id="res-response-hex">-</div>
               <div class="byte-inspector-tags" id="res-resp-tags"></div>
             </div>

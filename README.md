@@ -159,6 +159,39 @@ While the simulator includes a Modbus TCP bridge (`:8502`) for pure software tes
 
 ---
 
+## 📟 Testing with YAT (Yet Another Terminal) / Modbus Poll
+
+You can test the simulator directly without any hardware using **YAT (Yet Another Terminal)** over the Modbus TCP server (or a virtual COM port pair using `com0com`).
+
+### ⚠️ Critical YAT Settings (Pure Binary / No EOL)
+Modbus RTU is a **binary protocol** that does not use newlines (`\r` or `\n`). Extra carriage return or line feed bytes will cause CRC errors or frame rejection.
+
+1. **Open YAT** and create a new terminal:
+   - **Terminal Type**: `TCP/IP Client`
+   - **Remote Host**: `127.0.0.1` (or `localhost`)
+   - **Remote Port**: `8502`
+2. **Configure End-Of-Line (EOL)**:
+   - Go to **Terminal > Settings > Text Settings**
+   - Under **End-of-Line (EOL)**, set **Tx EOL = `<None>`** (and **Rx EOL = `<None>`**)
+3. **Format bytes using YAT's Hex escape sequence `\h(...)`**:
+   - In the send box, enter hex bytes enclosed in `\h(...)` and click Send.
+
+### Ready-to-Send YAT Test Commands
+
+| Command | Register | YAT Hex String to Send | Description |
+|---|---|---|---|
+| **Read Voltage** | `0x000C` (1 reg) | `\h(01 03 00 0C 00 01 44 09)` | Reads Grid Voltage (scale: 0.1 V) |
+| **Read Current** | `0x000D` (1 reg) | `\h(01 03 00 0D 00 01 15 C9)` | Reads Load Current (scale: 0.01 A) |
+| **Read Import Energy** | `0x000A` (2 regs) | `\h(01 03 00 0A 00 02 E4 09)` | Reads Import Energy (kWh / 100) |
+| **Read Export Energy** | `0x0008` (2 regs) | `\h(01 03 00 08 00 02 45 C9)` | Reads Export Energy (kWh / 100) |
+| **Read Total Energy** | `0x0000` (2 regs) | `\h(01 03 00 00 00 02 C4 0B)` | Reads Total Active Energy (kWh / 100) |
+| **Turn Relay ON** | `0x001A` | `\h(01 10 00 1A 00 01 02 00 01 67 9C)` | Closes internal relay (FC 0x10) |
+| **Turn Relay OFF** | `0x001A` | `\h(01 10 00 1A 00 01 02 00 00 A6 5C)` | Opens internal relay (FC 0x10) |
+
+> **Pro-Tip**: In the simulator's Web Dashboard at `http://localhost:8238`, click any preset button in the **Interactive Sandbox**, then click **"📋 Copy for YAT (\h format)"** to instantly copy the exact CRC-calculated string for any meter!
+
+---
+
 ## 📊 Register Map Reference
 
 | Register(s) | Parameter | Units / Scale | Type | Byte Order | Function Codes |
