@@ -1,6 +1,13 @@
-# Hiking DDS238-2 ZN/S Modbus RTU Energy Meter Simulator
+# Hiking DDS238-2 ZN/S Modbus RTU & TCP Energy Meter Simulator
 
-A high-performance Modbus RTU / TCP simulator and interactive debugging tool in Go, designed for developing and testing Modbus client (controller) applications on **STM32**, Arduino, ESP32, or PC.
+[![Go Report Card](https://goreportcard.com/badge/github.com/vishnu-illikkal/dds238-modbus-simulator)](https://goreportcard.com/report/github.com/vishnu-illikkal/dds238-modbus-simulator)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-informational)](#-quick-start)
+[![Modbus Protocol](https://img.shields.io/badge/Modbus-RTU%20(RS485)%20%7C%20TCP-orange)](https://github.com/vishnu-illikkal/dds238-modbus-simulator)
+
+> **Also known as:** Hiking DDS238-2 ZN/S, DDS238-2 ZN-S, DDS238-2ZN/S, DDS238-2, Hiking Smart DIN-Rail Energy Meter, DDS238 Modbus RTU / TCP Simulator.
+
+A high-performance Modbus RTU / TCP simulator and interactive debugging tool written in Go, designed for developing and testing Modbus client (controller) applications on **STM32**, Arduino, ESP32, Raspberry Pi, or PC.
 
 Includes a **built-in modern Web Dashboard, Client Reader & Packet Inspector** that provides real-time telemetry, live Modbus wire traffic analysis, fault injection, and instant **STM32 C code generation**.
 
@@ -247,3 +254,9 @@ go test -v ./...
 
 - [DDS238-2 ZN-S Modbus Protocol Register Documentation (fawno/Modbus)](https://github.com/fawno/Modbus/blob/master/DDS238-2%20ZN-S%20Modbus.md)
 - [DDS238-2 ZN-S Modbus RTU Reference Gist (alphp)](https://gist.github.com/alphp/95e1efe916c0dd6df7156f43dd521d53)
+
+---
+
+## 🏷️ Keywords & Search Tags
+
+`Hiking DDS238-2 ZN/S` · `Hiking DDS238-2 ZN-S` · `DDS238-2ZN/S` · `DDS238-2` · `DDS238` · `Modbus RTU Simulator` · `Modbus TCP Simulator` · `RS-485 Energy Meter` · `Smart Meter Simulation` · `STM32 Modbus Master` · `ESP32 Modbus Master` · `Arduino Modbus RTU` · `DIN-Rail Power Meter` · `Virtual Grid Telemetry` · `Power Factor Meter` · `Bi-directional Solar Meter` · `Go Modbus Server`
